@@ -1,28 +1,81 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { connect } from 'react-redux';
+import Validator from 'validator';
+import classnames from 'classnames';
+import { fetchCurrency, clearCurrency } from './actions';
 
 class App extends Component {
+  state = {
+    error: false,
+    typingTimeout: 0,
+  }
+
+  isValid = (val) => {
+    if (!Validator.isNumeric(val)) {
+      this.setState({ 
+        error: true,
+      });
+
+      return false;
+    } 
+
+    return true;
+  };
+
+  handleChange = () => {
+    if (this.state.typingTimeout) {
+      clearTimeout(this.state.typingTimeout);
+    }
+
+    this.props.clearCurrency();
+
+    if (this.amountInput.value !== '') {
+      this.setState({
+        error: false,
+        typingTimeout: setTimeout(() => {
+          if (this.isValid(this.amountInput.value)) {
+            this.props.fetchCurrency(this.amountInput.value);
+          }
+        }, 1000),
+      });
+    }
+  }
+
   render() {
+    const { currency } = this.props;
+
     return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
+      <div className="ui container">
+        <h1>IDR Currency App</h1>
+        <div className={classnames("ui input", { error: !!this.state.error })}>
+          <input
+            type="text"
+            name="amount"
+            placeholder="Your Amount"
+            ref={element => this.amountInput = element}
+            onChange={this.handleChange}
+          />
+        </div>
+ 
+        <ul className="ui list">
+          {
+            currency.map((item, index) =>
+              <li key={index}>{item.currency} = {item.amount}</li>
+            )
+          }
+        </ul>
       </div>
     );
   }
 }
 
-export default App;
+const mapState = state => ({
+  currency: state.currency,
+});
+
+const mapDispatch = {
+  fetchCurrency,
+  clearCurrency,
+};
+
+export default connect(mapState, mapDispatch)(App);
